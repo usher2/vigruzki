@@ -1,0 +1,2 @@
+*/5     *       *       *       *       flock -x -n /srv/eais/purge.lock python3 /srv/eais/purge.py
+

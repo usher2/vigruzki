@@ -2,7 +2,7 @@
 *.pyc
 *.swp
 *.log
-/logs/
-/venv/
-/files/
+/__pycache__/
+/etc/*
+!/etc/*.sample
 

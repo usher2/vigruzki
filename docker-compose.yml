@@ -1,0 +1,83 @@
+version: '3.3'
+
+services:
+        eaisdb:
+                image: mariadb:10.2
+                env_file:
+                        - ./etc/mysql_root.env
+                        - ./etc/mysql_user.env
+                volumes:
+                        - eais-db:/var/lib/mysql
+                        - ./sql:/docker-entrypoint-initdb.d
+                command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+                logging:
+                        driver: syslog
+                        options:
+                                tag: eaisdb
+                restart: unless-stopped
+        eaisapp:
+                build:
+                        context: ./upload
+                env_file:
+                        - ./etc/mysql_user.env
+                volumes:
+                        - eais-data:/var/opt/eais/data
+                        - eais-logs:/var/log/eais
+                        - ./etc/upload.cfg:/upload.cfg:ro
+                links:
+                        - eaisdb:mysql
+                depends_on:
+                        - eaisdb
+                logging:
+                        driver: syslog
+                        options:
+                                tag: eaisapp
+                restart: unless-stopped
+        eaispurge:
+                build:
+                        context: ./purge
+                volumes:
+                        - eais-data:/var/opt/eais/data
+                        - eais-logs:/var/log/eais
+                        - ./etc/mysql_user.env:/mysql_user.env:ro
+                        - ./etc/upload.cfg:/upload.cfg:ro
+                links:
+                        - eaisdb:mysql
+                depends_on:
+                        - eaisdb
+                logging:
+                        driver: syslog
+                        options:
+                                tag: eaispurge
+                restart: unless-stopped
+        nginx:
+                build:
+                        context: ./nginx
+                volumes:
+                        - letsencrypt:/etc/letsencrypt:ro
+                        - www:/var/www:ro
+                        - eais-data:/var/opt/eais/data
+                ports:
+                        - "80:80"
+                        - "443:443"
+                links:
+                        - eaisapp
+                depends_on:
+                        - eaisapp
+                        - eaisdb
+                logging:
+                        driver: syslog
+                        options:
+                                tag: nginx
+                restart: unless-stopped
+volumes:
+        eais-data:
+                external: true
+        eais-logs:
+                external: true
+        eais-db:
+                external: true
+        www:
+                external: true
+        letsencrypt:
+                external: true
