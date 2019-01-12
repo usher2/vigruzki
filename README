@@ -1,3 +1,5 @@
+"Vigruzki" storage service
+--------------------------
 
-find ./data -type f -name "*.zip" | xargs -L 1 -I %R  curl -k -X POST -H "Authorization: Bearer ${TECH_KEY}" -F "file=@%R" https://eais-upload.451f.cc/upload
+... something...
 
