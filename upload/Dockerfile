@@ -22,8 +22,7 @@ RUN apk add --no-cache --virtual .build-deps \
                 musl-dev \
                 curl \
         && pip3 install mysqlclient \
-        && curl https://files.pythonhosted.org/packages/3a/5c/af593739e5ea8dfe81f76068db07991bba4c61d13ba1206e6e5dc389decb/borgbackup-1.1.0b6.tar.gz#md5=008d588e841835e9f28e2c68e5c6e848 | tar --strip-components=1 -zxp \
-        && curl https://github.com/borgbackup/borg/commit/019a2587092ca785244e1f37067a96f614b51ac4.patch | patch -p 1 \
+        && curl -L https://github.com/borgbackup/borg/releases/download/1.1.8/borgbackup-1.1.8.tar.gz | tar --strip-components=1 -zxp \
         && pip3 install . \
         && apk del .build-deps \
         && rm -rf /tmp/*
