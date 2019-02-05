@@ -112,7 +112,7 @@ if __name__ == "__main__":
         # borg init
         borg_env = os.environ.copy()
         borg_env["LANG"]="en_US.UTF-8"
-        borg_env["BORG_CONFIG_DIR"]=os.path.join(app.config["DATA_FOLDER"], ".config/borg")
+        borg_env["BORG_CONFIG_DIR"]=os.path.join(config["DATA_FOLDER"], ".config/borg")
         borg_env["BORG_CACHE_DIR"]=os.path.join(config["DATA_FOLDER"], ".cache")
         borg_env["BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK"]="yes"
         borg_env["BORG_RELOCATED_REPO_ACCESS_IS_OK"]="yes"
