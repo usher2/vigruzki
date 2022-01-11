@@ -2,8 +2,10 @@ FROM alpine:3.6
 
 LABEL maintainer="Phil Kulin <schors@gmail.com>"
 
+VOLUME /tmp
+
 WORKDIR /tmp
-RUN apk add --no-cache bash openssl python3 py3-msgpack mariadb-client-libs\
+RUN apk add --no-cache bash openssl python3 py3-msgpack mariadb-client-libs \
         lz4-libs libattr libacl libressl ca-certificates \
         && pip3 install --upgrade pip \
         && apk add --no-cache --virtual .build-deps \
@@ -44,4 +46,3 @@ COPY crontab /etc/crontabs/eais
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD [ "crond", "-f", "-d", "8"]
-

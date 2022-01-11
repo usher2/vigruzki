@@ -15,6 +15,7 @@ from flask_mysqldb import MySQL
 
 ACCESS_UPLOAD = 1
 ACCESS_DOWNLOAD = 2
+ACCESS_DELETE = 3
 
 ALLOWED_EXTENSIONS = set(['zip'])
 BLOCK_SIZE = 4096
@@ -170,6 +171,24 @@ def decompress(uniqid):
                 if os.path.exists(tempdir):
                         os.rmdir(tempdir)
 
+def erase(uniqid):
+        if uniqid == "":
+                print("Empty uniqid!!!")
+                return False
+        tempdir = os.path.join(app.config['UPLOAD_FOLDER'], str(uuid.uuid4()))
+        os.mkdir(tempdir)
+        try:    
+                args = ["borg", "delete", borg_repo + "::" + uniqid]
+                print("B: %s" % ' '.join(args))
+                subprocess.run(args, env=borg_env, check=True, cwd=tempdir)
+                return True
+        except:
+                print("Borg  error: %s" % sys.exc_info()[1])
+                return False
+        finally:
+                if os.path.exists(tempdir):
+                        os.rmdir(tempdir)
+
 def get_file(uniqid):
         try:
                 cur = mysql.connection.cursor()
@@ -198,9 +217,58 @@ def get_file(uniqid):
         finally:
                 mysql.connection.commit()
 
+def del_file(uniqid):
+        try:
+                cur = mysql.connection.cursor()
+                # exclusive lock - for concurency
+                cur.execute('SELECT * FROM `dumps` WHERE `id` = %s FOR UPDATE', (uniqid, ))
+                rv = cur.fetchall()
+                dump = rv[0] if rv else None
+                if dump is not None:
+                        uniqname = uniqid + '.zip'
+                        datadir = os.path.join(app.config['DATA_FOLDER'], uniqid[0:2], uniqid[2:4])
+                        filename = os.path.join(datadir, uniqname)
+                        now = int(time.time())
+                        ct = now + CACHETIME
+                        if erase(uniqid):
+                                cur.execute('DELETE FROM `dumps` WHERE `id`=%s', (uniqid, ))
+                                if os.path.exists(filename):
+                                        print("Delete %s" % filename)
+                                        os.unlink(filename)
+                        else:
+                                raise Exception("Can't remove %s from archive" % uniqid)
+                        return True
+                else:
+                        return False
+        except:
+                raise
+        finally:
+                mysql.connection.commit()
+
 @app.route('/', methods=['GET'])
 def get_root():
         return "<!doctype html><html></html>"
+
+@app.route('/get/<uniqid>', methods=['DELETE'])
+def del_handler(uniqid):
+        addr = get_ip(request)
+        acheck = get_auth(addr, request, ACCESS_DELETE)
+        user = acheck['nick']
+        if uniqid is not None:
+                app.logger.warning("%s (%s): Dump erasing %s requested", addr, user, uniqid)
+                if del_file(uniqid):
+                        app.logger.warning("%s (%s): Dump %s was erased", addr, user, uniqid)
+                        return '''
+                        <!doctype html>
+                        <title>DELETED</title>
+                        <h1>UID: %s</h1>
+                        ''' % (uniqid)
+                else:
+                        app.logger.warning("%s (%s): Dump %s was not erased", addr, user, uniqid)
+                        abort(500)
+        else:
+                app.logger.warning("%s (%s): Name for erasing is empty", addr, user)
+                abort(500)
 
 @app.route('/hot', methods=['GET'])
 def hot_handler():
